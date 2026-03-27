@@ -1,7 +1,3 @@
-"""
-agent_core.py — now returns diagnosis for ticket creation
-"""
-
 import os
 import json
 from datetime import datetime
@@ -22,46 +18,59 @@ llm = ChatGoogleGenerativeAI(
 AGENT_PROMPT = PromptTemplate.from_template("""
 You are a careful GCP SRE agent. Resolve LOW RISK issues only.
 
-RULES:
+RULES — NEVER VIOLATE:
 1. NEVER delete any resource
-2. NEVER modify IAM
-3. NEVER touch databases
+2. NEVER modify IAM permissions
+3. NEVER touch databases or Cloud SQL
 4. NEVER scale beyond 10 instances
 5. ALWAYS call get_recent_logs FIRST
-6. Maximum 5 steps
+6. Maximum 5 steps only
 
 TOOLS: {tools}
 Tool names: {tool_names}
 
 ALERT: {input}
 
-Thought: What is the issue?
-Action: [tool]
+Thought: What is the issue and which resource is affected?
+Action: [tool name]
 Action Input: [input]
 Observation: [result]
-Thought: What next?
-Final Answer: [Exactly what you did and outcome]
+Thought: What should I do next based on the observation?
+Final Answer: [Exactly what you did, which tools, what outcome]
 
 {agent_scratchpad}
 """)
 
 
 def generate_gemini_diagnosis(alert_data: dict) -> str:
-    """Generate root cause diagnosis for LOW RISK ticket."""
+    """
+    Generates root cause diagnosis for LOW RISK PR.
+    Tells developer exactly what happened and why.
+    """
     incident = alert_data.get("incident", {})
     prompt = f"""
-You are a GCP SRE expert. Analyze this alert for a developer ticket.
+You are a GCP SRE expert writing a diagnosis for a developer incident report.
 
-Alert   : {incident.get('summary', 'Unknown')}
+Alert    : {incident.get('summary', 'Unknown')}
 Condition: {incident.get('condition_name', 'Unknown')}
 Resource : {incident.get('resource_name', 'Unknown')}
+Project  : {incident.get('scoping_project_id', 'Unknown')}
 
-Write a concise diagnosis (max 150 words) with these sections:
+Write a clear diagnosis (max 150 words) with these exact sections:
 
-**Root Cause:** What most likely caused this.
-**What Happened:** What was happening at infrastructure level.
-**User Impact:** What the user experienced.
-**Prevention:** 3 specific steps to stop this happening again.
+**Root Cause:**
+What most likely caused this — be specific, not generic.
+
+**What Happened:**
+What was happening at the infrastructure level during the incident.
+
+**User Impact:**
+What the end user or calling service experienced.
+
+**Prevention:**
+3 specific, actionable steps to prevent recurrence.
+
+Write for a developer who needs to understand quickly without searching.
 """
     try:
         return llm.invoke(prompt).content
@@ -70,36 +79,40 @@ Write a concise diagnosis (max 150 words) with these sections:
 
 
 def generate_gemini_solution(alert_data: dict) -> str:
-    """Generate solution steps for HIGH RISK ticket."""
+    """
+    Generates solution steps for HIGH RISK PR.
+    Gives developer exact gcloud commands to fix the issue.
+    """
     incident = alert_data.get("incident", {})
     project  = incident.get("scoping_project_id", "poc-genai-chatbot")
     resource = incident.get("resource_name", "unknown")
 
     prompt = f"""
 You are a GCP SRE expert. A HIGH RISK alert was escalated to a human engineer.
-The AI agent did NOT auto-fix this. Give the developer a solution guide.
+The AI agent did NOT auto-fix this. Give the developer a complete solution.
 
 Alert    : {incident.get('summary', 'Unknown')}
 Condition: {incident.get('condition_name', 'Unknown')}
 Resource : {resource}
 Project  : {project}
 
-Write a solution guide (max 250 words):
+Write a solution guide (max 250 words) with these sections:
 
-**Immediate Actions:**
-Numbered list — first 3 things to do RIGHT NOW.
+**Immediate Actions (do these first):**
+Numbered list — top 3 things to do RIGHT NOW to contain the issue.
 
 **Investigation Commands:**
-Actual gcloud commands to find root cause.
-Use project={project} and resource={resource} in the commands.
+Actual gcloud commands to understand what happened.
+Use the real values: project={project}, resource={resource}
 
 **Fix Steps:**
-Exact steps to resolve this specific issue type.
+Exact step-by-step commands to resolve this specific issue type.
+Include real gcloud commands with the actual project and resource values.
 
 **Verification:**
-How to confirm the fix worked.
+How to confirm the fix worked — include a gcloud command to verify.
 
-Use actual gcloud commands. Be specific and actionable.
+Be specific. Use real gcloud commands. Do not be generic.
 """
     try:
         return llm.invoke(prompt).content
@@ -108,6 +121,7 @@ Use actual gcloud commands. Be specific and actionable.
 
 
 def log_dry_run(alert_data: dict, plan: str):
+    """Save dry run plan to log file."""
     log_file  = CONFIG.get("dry_run_log_file", "dry_run_logs.txt")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     summary   = alert_data.get("incident", {}).get("summary", "Unknown")
@@ -130,8 +144,8 @@ RESOURCE  : {resource}
 
 def run_agent(alert_data: dict) -> dict:
     """
-    Run agent for LOW RISK alerts.
-    Returns dict with action_taken + gemini_diagnosis for ticket creation.
+    Main entry point for LOW RISK alerts.
+    Returns dict with action_taken + gemini_diagnosis for PR creation.
     """
     is_dry_run = CONFIG.get("agent_dry_run", True)
 
@@ -143,41 +157,45 @@ Project   : {alert_data.get('incident', {}).get('scoping_project_id', 'Unknown')
 State     : {alert_data.get('incident', {}).get('state', 'Unknown')}
 """
 
-    # Always generate diagnosis for ticket
-    print(f"[AGENT CORE] Generating Gemini diagnosis for ticket...")
+    # Always generate diagnosis for PR regardless of mode
+    print(f"[AGENT CORE] Generating Gemini diagnosis...")
     gemini_diagnosis = generate_gemini_diagnosis(alert_data)
 
+    # ── DRY RUN ──────────────────────────────────────────────────
     if is_dry_run:
-        print(f"[AGENT CORE] 🔍 DRY RUN MODE")
+        print(f"[AGENT CORE] 🔍 DRY RUN MODE — planning only")
         prompt = f"""
-GCP SRE DRY RUN — write a detailed action plan.
+GCP SRE DRY RUN — write a detailed action plan. No tools called.
 
 Alert: {alert_text}
 
-Format:
-1. DIAGNOSIS: Root cause
-2. FIRST ACTION: Tool + input + expected output
-3. REMEDIATION: Tool + input + reasoning  
-4. VERIFICATION: How to confirm fix
-5. FALLBACK: If main fix fails
+Write plan as:
+1. DIAGNOSIS: What is broken and why
+2. FIRST ACTION: Exact tool name + input + expected result
+3. REMEDIATION: Exact tool + input + reasoning
+4. VERIFICATION: How to confirm fix worked
+5. FALLBACK: What to do if main fix fails
 
 Available tools: {[t.name for t in ALL_TOOLS]}
 """
         try:
             plan         = llm.invoke(prompt).content
-            action_taken = f"[DRY RUN]\n\n{plan}"
+            action_taken = f"[DRY RUN — no real changes made]\n\n{plan}"
             log_dry_run(alert_data, plan)
         except Exception as e:
-            action_taken = f"[DRY RUN] Error: {str(e)}"
+            action_taken = f"[DRY RUN] Error generating plan: {str(e)}"
             print(f"[AGENT CORE] ❌ {action_taken}")
 
+    # ── LIVE MODE ────────────────────────────────────────────────
     else:
-        print(f"[AGENT CORE] ⚡ LIVE MODE")
+        print(f"[AGENT CORE] ⚡ LIVE MODE — taking real actions")
         try:
             agent    = create_react_agent(llm, ALL_TOOLS, AGENT_PROMPT)
             executor = AgentExecutor(
-                agent=agent, tools=ALL_TOOLS,
-                verbose=True, max_iterations=5,
+                agent=agent,
+                tools=ALL_TOOLS,
+                verbose=True,
+                max_iterations=5,
                 handle_parsing_errors=True
             )
             result       = executor.invoke({"input": alert_text})

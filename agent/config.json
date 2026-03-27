@@ -1,0 +1,52 @@
+{
+  "high_risk_keywords": [
+    "delete", "drop", "destroy", "iam", "firewall",
+    "permission", "database", "sql", "production", "prod",
+    "billing", "credentials", "secret", "backup", "restore"
+  ],
+
+  "high_risk_resource_types": [
+    "cloudsql",
+    "bigquery",
+    "storage_bucket",
+    "iam_policy",
+    "firewall_rule",
+    "load_balancer"
+  ],
+
+  "high_risk_conditions": [
+    "billing_anomaly",
+    "iam_policy_change",
+    "firewall_rule_change",
+    "data_access_anomaly",
+    "unauthorized_access"
+  ],
+
+  "low_risk_conditions": [
+    "high_cpu_utilization",
+    "high_memory_usage",
+    "cloud_run_5xx_errors",
+    "pod_crash_loop",
+    "high_latency",
+    "disk_usage_high"
+  ],
+
+  "low_risk_allowed_actions": [
+    "restart_cloud_run_service",
+    "scale_up_cloud_run",
+    "clear_old_logs",
+    "restart_crashed_pod"
+  ],
+
+  "thresholds": {
+    "cpu_percent": 85,
+    "memory_percent": 90,
+    "error_rate_per_minute": 10,
+    "max_auto_scale_instances": 10,
+    "max_restarts_per_hour": 3
+  },
+
+  "agent_dry_run": true,
+  "log_all_decisions": true,
+  "dry_run_log_file": "dry_run_logs.txt"
+}

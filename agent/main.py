@@ -1,7 +1,3 @@
-"""
-main.py — v2.0 with ticket creation
-"""
-
 import os
 import json
 from fastapi import FastAPI
@@ -15,11 +11,21 @@ load_dotenv()
 from risk_classifier import classify_risk
 from agent_core import run_agent, generate_gemini_solution, CONFIG
 from notifier import send_high_risk_email, send_resolution_email
-from ticket_creator import create_low_risk_ticket, create_high_risk_ticket
+from pr_creator import create_low_risk_pr, create_high_risk_pr
 
 app = FastAPI(
-    title="GCP SRE Agent v2.0 — With Ticket Creation",
-    description="Auto-resolves LOW RISK alerts and creates GitHub tickets for all incidents",
+    title="GCP SRE Agent v2.0",
+    description="""
+## GCP SRE Automation Agent v2.0
+
+**New in v2.0:** Creates GitHub PRs for every incident.
+
+### Flow:
+- **LOW RISK**  → Agent fixes GCP → GitHub PR created → Resolution email sent
+- **HIGH RISK** → GitHub PR with Gemini solution → Alert email sent → Zero GCP changes
+
+### PRs are NEVER merged — developer reviews and closes after resolving.
+    """,
     version="2.0.0",
     docs_url="/docs"
 )
@@ -27,11 +33,11 @@ app = FastAPI(
 
 class IncidentData(BaseModel):
     summary: str
-    condition_name: Optional[str] = "Unknown"
-    resource_name: Optional[str]  = "unknown-resource"
-    scoping_project_id: Optional[str] = "poc-genai-chatbot"
-    state: Optional[str]              = "open"
-    started_at: Optional[str]         = "2024-01-01T00:00:00Z"
+    condition_name: Optional[str]      = "Unknown"
+    resource_name: Optional[str]       = "unknown-resource"
+    scoping_project_id: Optional[str]  = "poc-genai-chatbot"
+    state: Optional[str]               = "open"
+    started_at: Optional[str]          = "2024-01-01T00:00:00Z"
 
 class AlertRequest(BaseModel):
     incident: IncidentData
@@ -47,15 +53,16 @@ class AlertRequest(BaseModel):
         }}}
 
 class ConfigUpdate(BaseModel):
-    agent_dry_run: Optional[bool]      = None
-    log_all_decisions: Optional[bool]  = None
+    agent_dry_run: Optional[bool]     = None
+    log_all_decisions: Optional[bool] = None
 
 
 @app.get("/", tags=["Status"])
 def root():
     return {
         "status":    "running",
-        "version":   "2.0.0 — with ticket creation",
+        "version":   "2.0.0",
+        "features":  ["auto-resolve", "github-pr", "email-alerts"],
         "dry_run":   CONFIG.get("agent_dry_run", True),
         "timestamp": datetime.now().isoformat()
     }
@@ -88,9 +95,11 @@ def update_config(update: ConfigUpdate):
 @app.post("/handle-alert", tags=["Agent"])
 async def handle_alert(alert: AlertRequest):
     """
-    Main endpoint — handles every alert.
-    LOW RISK  → fixes it → creates GitHub ticket → sends resolution email
-    HIGH RISK → creates GitHub ticket with AI solution → sends alert email
+    Handles every GCP alert.
+
+    LOW RISK  → Fix GCP → Create GitHub PR → Send resolution email
+    HIGH RISK → Create GitHub PR with solution → Send alert email
+    PRs are NEVER merged automatically.
     """
     alert_data = alert.dict()
     summary    = alert.incident.summary
@@ -103,54 +112,43 @@ async def handle_alert(alert: AlertRequest):
 
     risk_level = classify_risk(alert_data)
 
-    # ── HIGH RISK PATH ────────────────────────────────────────────
+    # ── HIGH RISK ─────────────────────────────────────────────────
     if risk_level == "HIGH":
-        print(f"[MAIN] 🚨 HIGH RISK — creating ticket + sending email")
+        print(f"[MAIN] 🚨 HIGH RISK — creating PR + sending email")
 
-        # Gemini generates solution for developer
         gemini_solution = generate_gemini_solution(alert_data)
+        pr_url          = create_high_risk_pr(alert_data, gemini_solution)
 
-        # Create GitHub ticket with full details + solution
-        ticket_url = create_high_risk_ticket(alert_data, gemini_solution)
-
-        # Send email with ticket link
-        send_high_risk_email(summary, alert_data, ticket_url)
+        send_high_risk_email(summary, alert_data, pr_url)
 
         return {
             "status":        "escalated_to_human",
             "risk":          "HIGH",
-            "action":        "GitHub ticket created + email sent",
-            "ticket_url":    ticket_url,
+            "action":        "GitHub PR created with solution + email sent",
+            "pr_url":        pr_url,
             "alert_summary": summary,
             "resource":      resource,
             "timestamp":     datetime.now().isoformat()
         }
 
-    # ── LOW RISK PATH ─────────────────────────────────────────────
+    # ── LOW RISK ──────────────────────────────────────────────────
     else:
         print(f"[MAIN] ✅ LOW RISK — running agent")
 
-        # Agent fixes + generates diagnosis
         result           = run_agent(alert_data)
         action_taken     = result["action_taken"]
         gemini_diagnosis = result["gemini_diagnosis"]
 
-        # Create GitHub ticket showing what was done
-        ticket_url = create_low_risk_ticket(
-            alert_data,
-            action_taken,
-            gemini_diagnosis
-        )
+        pr_url = create_low_risk_pr(alert_data, action_taken, gemini_diagnosis)
 
-        # Send resolution email with ticket link
-        send_resolution_email(resource, action_taken, ticket_url)
+        send_resolution_email(resource, action_taken, pr_url)
 
         return {
             "status":        "auto_resolved",
             "risk":          "LOW",
             "dry_run":       CONFIG.get("agent_dry_run", True),
             "action_taken":  action_taken,
-            "ticket_url":    ticket_url,
+            "pr_url":        pr_url,
             "alert_summary": summary,
             "resource":      resource,
             "timestamp":     datetime.now().isoformat()
@@ -159,7 +157,7 @@ async def handle_alert(alert: AlertRequest):
 
 @app.post("/test/low-risk", tags=["Testing"])
 async def test_low_risk():
-    """Test LOW RISK — creates GitHub ticket + sends resolution email."""
+    """Test LOW RISK — fixes GCP + creates GitHub PR + sends email."""
     return await handle_alert(AlertRequest(incident=IncidentData(
         summary="Cloud Run service my-api returning 503 errors and may be crashed",
         condition_name="cloud_run_5xx_errors",
@@ -172,7 +170,7 @@ async def test_low_risk():
 
 @app.post("/test/high-risk", tags=["Testing"])
 async def test_high_risk():
-    """Test HIGH RISK — creates GitHub ticket with AI solution + sends alert email."""
+    """Test HIGH RISK — creates GitHub PR with Gemini solution + sends email."""
     return await handle_alert(AlertRequest(incident=IncidentData(
         summary="Unusual IAM permission change — owner role granted on production database",
         condition_name="iam_policy_change",
@@ -189,9 +187,12 @@ def get_dry_run_logs(last_n_lines: int = 80):
     try:
         with open(log_file, "r") as f:
             lines = f.readlines()
-        return {"total_lines": len(lines), "logs": "".join(lines[-last_n_lines:])}
+        return {
+            "total_lines": len(lines),
+            "logs": "".join(lines[-last_n_lines:])
+        }
     except FileNotFoundError:
-        return {"message": "No dry run logs yet — send a test alert first"}
+        return {"message": "No dry run logs yet"}
 
 
 @app.delete("/dry-run-logs/clear", tags=["Dry Run"])
