@@ -14,7 +14,22 @@
       "branch": "high-risk/20260327-100026-prod-database",
       "status": "open",
       "resolved_at": null
+    },
+    "my-api:cloud_run_5xx_errors": {
+      "resource": "my-api",
+      "condition": "cloud_run_5xx_errors",
+      "summary": "Cloud Run service my-api returning 503 errors and may be crashed",
+      "project": "poc-genai-chatbot",
+      "risk": "LOW",
+      "first_seen": "2026-03-27T10:01:42.263532",
+      "last_seen": "2026-03-27T10:01:42.263532",
+      "count": 1,
+      "pr_url": "https://github.com/Srujan-pd/agent-testing/pull/7",
+      "pr_number": 7,
+      "branch": "resolved/20260327-100142-my-api",
+      "status": "open",
+      "resolved_at": null
     }
   },
-  "last_updated": "2026-03-27T10:00:33.717563"
+  "last_updated": "2026-03-27T10:01:42.263532"
 }
