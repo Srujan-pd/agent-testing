@@ -1,4 +1,20 @@
 {
-  "incidents": {},
-  "last_updated": "2026-03-27T00:00:00"
+  "incidents": {
+    "prod-database:iam_policy_change": {
+      "resource": "prod-database",
+      "condition": "iam_policy_change",
+      "summary": "Unusual IAM permission change \u2014 owner role granted on production database",
+      "project": "poc-genai-chatbot",
+      "risk": "HIGH",
+      "first_seen": "2026-03-27T10:00:26.766288",
+      "last_seen": "2026-03-27T10:00:26.766288",
+      "count": 1,
+      "pr_url": "https://github.com/Srujan-pd/agent-testing/pull/6",
+      "pr_number": 6,
+      "branch": "high-risk/20260327-100026-prod-database",
+      "status": "open",
+      "resolved_at": null
+    }
+  },
+  "last_updated": "2026-03-27T10:00:26.766288"
 }
