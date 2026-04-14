@@ -6,12 +6,12 @@
       "summary": "Unusual IAM permission change \u2014 owner role granted on production database",
       "project": "poc-genai-chatbot",
       "risk": "HIGH",
-      "first_seen": "2026-03-27T10:00:26.766288",
-      "last_seen": "2026-03-31T12:01:18.488858",
-      "count": 7,
-      "pr_url": "https://github.com/Srujan-pd/agent-testing/pull/6",
-      "pr_number": 6,
-      "branch": "high-risk/20260327-100026-prod-database",
+      "first_seen": "2026-04-14T07:21:19.473413",
+      "last_seen": "2026-04-14T07:21:19.473413",
+      "count": 1,
+      "pr_url": "https://github.com/Srujan-pd/agent-testing/pull/24",
+      "pr_number": 24,
+      "branch": "high-risk/20260414-072119-prod-database",
       "status": "open",
       "resolved_at": null
     },
@@ -31,5 +31,5 @@
       "resolved_at": null
     }
   },
-  "last_updated": "2026-04-14T07:11:40.303715"
+  "last_updated": "2026-04-14T07:21:19.473413"
 }
