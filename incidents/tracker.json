@@ -21,15 +21,15 @@
       "summary": "Cloud Run service my-api returning 503 errors and may be crashed",
       "project": "poc-genai-chatbot",
       "risk": "LOW",
-      "first_seen": "2026-03-27T10:01:42.263532",
-      "last_seen": "2026-03-31T12:01:27.158099",
-      "count": 3,
-      "pr_url": "https://github.com/Srujan-pd/agent-testing/pull/7",
-      "pr_number": 7,
-      "branch": "resolved/20260327-100142-my-api",
+      "first_seen": "2026-04-14T07:11:40.303715",
+      "last_seen": "2026-04-14T07:11:40.303715",
+      "count": 1,
+      "pr_url": "https://github.com/Srujan-pd/agent-testing/pull/23",
+      "pr_number": 23,
+      "branch": "resolved/20260414-071140-my-api",
       "status": "open",
       "resolved_at": null
     }
   },
-  "last_updated": "2026-03-31T12:01:27.158111"
+  "last_updated": "2026-04-14T07:11:40.303715"
 }
