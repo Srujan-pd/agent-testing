@@ -44,7 +44,22 @@
       "branch": "high-risk/20260416-054844-poc-genai-chatbot",
       "status": "open",
       "resolved_at": null
+    },
+    "my-api:high_cpu_utilization": {
+      "resource": "my-api",
+      "condition": "high_cpu_utilization",
+      "summary": "CPU utilization at 92% on Cloud Run service my-api",
+      "project": "poc-genai-chatbot",
+      "risk": "LOW",
+      "first_seen": "2026-04-16T05:48:57.585989",
+      "last_seen": "2026-04-16T05:48:57.585989",
+      "count": 1,
+      "pr_url": "https://github.com/Srujan-pd/agent-testing/issues/29",
+      "pr_number": 29,
+      "branch": "resolved/20260416-054857-my-api",
+      "status": "open",
+      "resolved_at": null
     }
   },
-  "last_updated": "2026-04-16T05:48:44.614612"
+  "last_updated": "2026-04-16T05:48:57.585989"
 }
