@@ -29,7 +29,22 @@
       "branch": "resolved/20260414-071140-my-api",
       "status": "open",
       "resolved_at": null
+    },
+    "poc-genai-chatbot:iam_policy_change": {
+      "resource": "poc-genai-chatbot",
+      "condition": "iam_policy_change",
+      "summary": "IAM permission change \u2014 owner role granted on production project",
+      "project": "poc-genai-chatbot",
+      "risk": "HIGH",
+      "first_seen": "2026-04-16T05:48:44.614612",
+      "last_seen": "2026-04-16T05:48:44.614612",
+      "count": 1,
+      "pr_url": "https://github.com/Srujan-pd/agent-testing/issues/28",
+      "pr_number": 28,
+      "branch": "high-risk/20260416-054844-poc-genai-chatbot",
+      "status": "open",
+      "resolved_at": null
     }
   },
-  "last_updated": "2026-04-15T10:43:01.799253"
+  "last_updated": "2026-04-16T05:48:44.614612"
 }
