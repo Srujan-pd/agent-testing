@@ -7,8 +7,8 @@
       "project": "poc-genai-chatbot",
       "risk": "HIGH",
       "first_seen": "2026-04-14T07:21:19.473413",
-      "last_seen": "2026-04-15T09:41:57.818716",
-      "count": 8,
+      "last_seen": "2026-04-16T05:55:20.462392",
+      "count": 9,
       "pr_url": "https://github.com/Srujan-pd/agent-testing/pull/24",
       "pr_number": 24,
       "branch": "high-risk/20260414-072119-prod-database",
@@ -61,5 +61,5 @@
       "resolved_at": null
     }
   },
-  "last_updated": "2026-04-16T05:49:00.828331"
+  "last_updated": "2026-04-16T05:55:20.462403"
 }
