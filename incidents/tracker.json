@@ -52,8 +52,8 @@
       "project": "poc-genai-chatbot",
       "risk": "LOW",
       "first_seen": "2026-04-16T05:48:57.585989",
-      "last_seen": "2026-04-16T05:48:57.585989",
-      "count": 1,
+      "last_seen": "2026-04-16T05:49:00.828316",
+      "count": 2,
       "pr_url": "https://github.com/Srujan-pd/agent-testing/issues/29",
       "pr_number": 29,
       "branch": "resolved/20260416-054857-my-api",
@@ -61,5 +61,5 @@
       "resolved_at": null
     }
   },
-  "last_updated": "2026-04-16T05:48:57.585989"
+  "last_updated": "2026-04-16T05:49:00.828331"
 }
